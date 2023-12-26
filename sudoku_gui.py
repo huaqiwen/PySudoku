@@ -184,28 +184,56 @@ class Board:
                     {}, wrong, time
                 )  # redraw the game window with the updated board
 
-    def hint(self, keys):
+    def hint(self):
         """
-        Provides a hint by filling in a random empty tile with the correct number.
-
-        Args:
-            keys (dict): A dictionary containing tuples of (x, y) coordinates as keys and potential values as values.
+        Provides a hint by finding unanswered tiles that have a definitive answer by applying the Sudoku 
+        constraints on the current board. If a hint is found, the tile is highlighted in blue. 
 
         Returns:
             bool: True if a hint is successfully provided, False if the board is already solved.
         """
-        while True:
-            i = random.randint(0, 8)
-            j = random.randint(0, 8)
-            if self.board[i][j] == 0:
-                if (j, i) in keys:
-                    del keys[(j, i)]
-                # fill in the selected empty tile with the correct number
-                self.board[i][j] = self.solvedBoard[i][j]
-                self.tiles[i][j].value = self.solvedBoard[i][j]
-                return True
-            elif self.board == self.solvedBoard:
-                return False  # the board is already solved, so no hint can be provided.
+        if self.board == self.solvedBoard:
+            return False  # the board is already solved, so no hint can be provided.
+
+        # Init possible values for unsolved tiles
+        possibleValues = [[list(range(1, 10)) for _ in range(9)] for _ in range(9)]
+        for i in range(9):
+            for j in range(9):
+                if self.board[i][j] != 0:
+                    possibleValues[i][j] = []
+        
+        # Use constraints to eliminate possible values
+        for i in range(9):
+            for j in range(9):
+                # Skip if tile is already solved
+                if self.board[i][j] != 0:
+                    continue
+                
+                # Check horizontal and vertical neighbors
+                for k in range(9):
+                    if self.board[i][k] in possibleValues[i][j]:
+                        possibleValues[i][j].remove(self.board[i][k])
+                    if self.board[k][j] in possibleValues[i][j]:
+                        possibleValues[i][j].remove(self.board[k][j])
+                
+                # Check 3x3 box neighbors
+                for k in range(i // 3 * 3, i // 3 * 3 + 3):
+                    for l in range(j // 3 * 3, j // 3 * 3 + 3):
+                        if self.board[k][l] in possibleValues[i][j]:
+                            possibleValues[i][j].remove(self.board[k][l])
+        
+        # Highlight tiles with only one possible value
+        for i in range(9):
+            for j in range(9):
+                if len(possibleValues[i][j]) == 1:
+                    self.tiles[i][j].highlight = True
+        
+        # DEBUG
+        print("Possible values: ")
+        for line in possibleValues:
+            print(line) 
+
+        return True
 
 
 class Tile:
@@ -330,11 +358,6 @@ def main():
         if board.board == board.solvedBoard:
             solved = True
 
-        # Remove highlighted hint tile
-        for i in range(9):
-            for j in range(9):
-                board.tiles[i][j].highlight = False
-
         # Handle events
         for event in pygame.event.get():
             elapsed = time.time() - startTime
@@ -342,6 +365,11 @@ def main():
             if event.type == pygame.QUIT:
                 exit()
             elif event.type == pygame.MOUSEBUTTONUP:
+                # Remove highlighted hint tile
+                for i in range(9):
+                    for j in range(9):
+                        board.tiles[i][j].highlight = False
+
                 # Check if a Tile is clicked
                 mousePos = pygame.mouse.get_pos()
                 for i in range(9):
@@ -395,15 +423,13 @@ def main():
                                 del keyDict[selected]
                                 # break
 
-                            board.tiles[selected[1]][selected[0]].value = keyDict[
-                                selected
-                            ]
+                            board.tiles[selected[1]][selected[0]].value = keyDict[selected]
                             board.board[selected[1]][selected[0]] = keyDict[selected]
                             del keyDict[selected]
 
                 # Handle hint key
                 if event.key == pygame.K_h:
-                    board.hint(keyDict)
+                    board.hint()
 
                 # Handle space key
                 if event.key == pygame.K_SPACE:
