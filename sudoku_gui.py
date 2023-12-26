@@ -5,7 +5,6 @@ from copy import deepcopy
 from sys import exit
 import pygame
 import time
-import random
 
 pygame.init()
 
@@ -222,6 +221,52 @@ class Board:
                         if self.board[k][l] in possibleValues[i][j]:
                             possibleValues[i][j].remove(self.board[k][l])
         
+        # Find other deducible tiles by checking legal positions for each value
+        for n in range(1, 10):
+            # Find all occurances of n
+            occurances = []
+            for i in range(9):
+                for j in range(9):
+                    if self.board[i][j] == n:
+                        occurances.append((i, j))
+
+            # Create a board of remaining legal positions
+            legalPositions = [[True for _ in range(9)] for _ in range(9)]
+
+            # Filled tiles are illegal
+            for i in range(9):
+                for j in range(9):
+                    if self.board[i][j] != 0:
+                        legalPositions[i][j] = False
+            
+            # Horizontal and vertical neighbors of all occurances of n are illegal
+            for occurance in occurances:
+                for i in range(9):
+                    legalPositions[i][occurance[1]] = False
+                    legalPositions[occurance[0]][i] = False
+            
+            # 3x3 box neighbors of all occurances of n are illegal
+            for occurance in occurances:
+                for i in range(occurance[0] // 3 * 3, occurance[0] // 3 * 3 + 3):
+                    for j in range(occurance[1] // 3 * 3, occurance[1] // 3 * 3 + 3):
+                        legalPositions[i][j] = False
+            
+            # Check all nine boxes, if a box only has one legal position, add to answer
+            for box_i in range(3):
+                for box_j in range(3):
+                    # Check if box only has one legal position
+                    legalPositionCount = 0
+                    legalPosition = (-1, -1)
+                    for i in range(3):
+                        for j in range(3):
+                            if legalPositions[box_i * 3 + i][box_j * 3 + j]:
+                                legalPositionCount += 1
+                                legalPosition = (box_i * 3 + i, box_j * 3 + j)
+                    
+                    # If box has exactly one legal position, add to answer
+                    if legalPositionCount == 1:
+                        possibleValues[legalPosition[0]][legalPosition[1]] = [n]
+        
         # Highlight tiles with only one possible value
         for i in range(9):
             for j in range(9):
@@ -231,7 +276,7 @@ class Board:
         # DEBUG
         print("Possible values: ")
         for line in possibleValues:
-            print(line) 
+            print(line)
 
         return True
 
