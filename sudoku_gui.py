@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from sudokutools import valid, solve, find_empty, generate_board
+from sudoku_tools import valid, solve, find_empty, generate_board
 from copy import deepcopy
 from sys import exit
 import pygame
@@ -102,6 +102,10 @@ class Board:
         self.draw_board()  # draw the Sudoku board
         for i in range(9):
             for j in range(9):
+                if self.tiles[i][j].highlight:
+                    # highlight the selected tile in blue
+                    self.tiles[j][i].draw((0, 0, 255), 4)
+
                 if self.tiles[j][i].selected:
                     # highlight selected tiles in green
                     self.tiles[j][i].draw((50, 205, 50), 4)
@@ -236,6 +240,7 @@ class Tile:
         self.selected = False
         self.correct = False
         self.incorrect = False
+        self.highlight = False
 
     def draw(self, color, thickness):
         """
@@ -324,6 +329,11 @@ def main():
         # Check if the sudoku is solved
         if board.board == board.solvedBoard:
             solved = True
+
+        # Remove highlighted hint tile
+        for i in range(9):
+            for j in range(9):
+                board.tiles[i][j].highlight = False
 
         # Handle events
         for event in pygame.event.get():
